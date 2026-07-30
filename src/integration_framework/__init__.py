@@ -5,14 +5,14 @@ Public API:
 
     from integration_framework import (
         FrameworkSettings, HandlerRegistry, IntegrationService,
-        ApiClient, ConsumerState, ok, error,
+        ConsumerState, IntegrationLogRepository, ok, error,
     )
 """
 
 from integration_framework.app import IntegrationService
 from integration_framework.envelope import envelope, error, ok
 from integration_framework.handlers import HandlerRegistry, route_payload
-from integration_framework.http_client import ApiClient
+from integration_framework.integration_log_repository import IntegrationLogRepository
 from integration_framework.logging import setup_logging
 from integration_framework.messaging import (
     ConsumerState,
@@ -23,10 +23,10 @@ from integration_framework.messaging import (
 from integration_framework.settings import FrameworkSettings
 
 __all__ = [
-    "ApiClient",
     "ConsumerState",
     "FrameworkSettings",
     "HandlerRegistry",
+    "IntegrationLogRepository",
     "IntegrationService",
     "RequestConsumer",
     "create_robust_connection",

@@ -36,7 +36,9 @@ class Settings(FrameworkSettings):
 
 
 @registry.handler("RedeemTicket")
-async def handle_redeem_ticket(payload, context, logger):
+async def handle_redeem_ticket(
+    payload, context, logger, device_id, request_id, audit_repository
+):
     message = payload.get("message") or {}
     success, data, headers, error = await context.get(f"/api/CashReceipt/info/{message['barcode']}")
     return success, {"data": data, "headers": headers}, error
@@ -44,7 +46,7 @@ async def handle_redeem_ticket(payload, context, logger):
 
 def main():
     settings = Settings()
-    api_client = ...  # e.g. integration_framework.ApiClient(base_url=..., api_key=...)
+    api_client = ...  # service-specific HTTP/SOAP/gRPC client
     service = IntegrationService(
         settings=settings,
         registry=registry,
@@ -106,8 +108,28 @@ IntegrationService(
 
 `integration_framework.create_robust_connection(settings, state, logger, name)`
 builds a state-tracked robust connection for custom consumers.
-`integration_framework.ApiClient` is a generic httpx wrapper (retries, API key,
-custom CA cert) for calling external APIs from handlers.
+HTTP/SOAP/gRPC clients stay service-specific and are passed through `context`.
+
+### Integration audit
+
+Every handler receives the framework-owned `audit_repository` as its last
+argument. The repository opens its PostgreSQL pool lazily, never interrupts
+message processing on database failures, and retries after
+`DB_RECONNECT_INTERVAL`:
+
+```python
+log_id = await audit_repository.create_pending_log(
+    message_type, message, device_id, request_id, "GET", request_url, None
+)
+result = await context.get(path)
+await audit_repository.complete_log(
+    log_id, result.status_code, result.data, result.headers, duration_ms
+)
+```
+
+Missing `request_id` or a failed database write makes the audit call a no-op.
+The Odoo application owns the `integration_request_response` and `terminal`
+tables and their migrations.
 
 ## Configuration (environment variables / `.env`)
 
@@ -132,6 +154,13 @@ custom CA cert) for calling external APIs from handlers.
 | `LOG_LEVEL` | `INFO` | |
 | `LOG_FILE` | *(empty — console only)* | Enables daily-rotating file log |
 | `LOG_RETENTION_DAYS` | `7` | Rotated file retention |
+| `POSTGRES_HOST` / `POSTGRES_PORT` | `localhost` / `5432` | Integration audit database |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | *(empty)* | Integration audit credentials |
+| `DB_POOL_MAX` | `15` | Maximum audit database pool size |
+| `DB_CONNECT_TIMEOUT` | `5` | Audit database connect timeout (s) |
+| `DB_STATEMENT_TIMEOUT_MS` | `5000` | Audit SQL statement timeout |
+| `DB_RECONNECT_INTERVAL` | `60` | Cooldown before lazy reconnect (s) |
+| `SERVICE_USER_ID` | `1` | Odoo audit user ID |
 | `APP_ENV` | *(empty)* | `development` enables `/debug` routes |
 
 Services subclass `FrameworkSettings` (pydantic-settings) and add their own fields.

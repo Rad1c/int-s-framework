@@ -17,6 +17,11 @@ def test_defaults():
     assert settings.rabbitmq_max_retry_attempts == 0
     assert settings.http_port == 8080
     assert settings.log_level == "INFO"
+    assert settings.postgres_host == "localhost"
+    assert settings.postgres_port == 5432
+    assert settings.db_pool_max == 15
+    assert settings.db_reconnect_interval == 60
+    assert settings.service_user_id == 1
 
 
 def test_required_fields():

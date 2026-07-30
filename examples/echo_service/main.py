@@ -31,9 +31,14 @@ class Settings(FrameworkSettings):
 
 
 @registry.handler("Echo")
-async def handle_echo(payload, context, logger):
+async def handle_echo(payload, context, logger, device_id, request_id, audit_repository):
     message = payload.get("message") or {}
-    logger.info("Echo handler - message=%s", message)
+    logger.info(
+        "Echo handler - message=%s, X-Device-Id=%s, X-Request-Id=%s",
+        message,
+        device_id,
+        request_id,
+    )
     return True, {"data": message}, ""
 
 

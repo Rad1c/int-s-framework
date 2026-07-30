@@ -24,6 +24,7 @@ import aio_pika.abc
 
 from integration_framework.envelope import error
 from integration_framework.handlers import HandlerRegistry, route_payload
+from integration_framework.integration_log_repository import IntegrationLogRepository
 from integration_framework.messaging.connection import create_robust_connection
 from integration_framework.messaging.publisher import publish_response
 from integration_framework.messaging.state import ConsumerState
@@ -38,12 +39,14 @@ class RequestConsumer:
         settings: FrameworkSettings,
         registry: HandlerRegistry,
         context: Any,
+        audit_repository: IntegrationLogRepository,
         state: ConsumerState | None = None,
         logger: logging.Logger | None = None,
     ):
         self.settings = settings
         self.registry = registry
         self.context = context
+        self.audit_repository = audit_repository
         self.state = state if state is not None else ConsumerState()
         self.logger = logger or _logger
 
@@ -152,5 +155,5 @@ class RequestConsumer:
         the debug controller so HTTP simulation shares the exact same path."""
         return await route_payload(
             message_data, self.registry, self.settings.service_type,
-            self.context, self.logger, device_id, request_id,
+            self.context, self.audit_repository, self.logger, device_id, request_id,
         )

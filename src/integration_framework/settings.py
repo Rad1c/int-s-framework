@@ -56,6 +56,19 @@ class FrameworkSettings(BaseSettings):
     log_file: str = ""  # empty = console only
     log_retention_days: int = 7
 
+    # Best-effort integration request/response audit. The repository connects
+    # lazily on first use and retries after db_reconnect_interval on failure.
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    postgres_db: str = ""
+    postgres_user: str = ""
+    postgres_password: str = ""
+    db_pool_max: int = 15
+    db_connect_timeout: int = 5
+    db_statement_timeout_ms: int = 5000
+    db_reconnect_interval: float = 60.0
+    service_user_id: int = 1
+
     # 'development' enables the /debug endpoints.
     app_env: str = ""
 

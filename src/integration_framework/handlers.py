@@ -3,7 +3,9 @@ Handler registry and message routing.
 
 A handler maps a payload.messageType to service business logic:
 
-    async def handle_redeem_ticket(payload, context, logger) -> tuple[bool, dict, str]:
+    async def handle_redeem_ticket(
+        payload, context, logger, device_id, request_id, audit_repository
+    ) -> tuple[bool, dict, str]:
         ...
         return True, {"data": data}, ""
 
@@ -18,8 +20,19 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from integration_framework.envelope import envelope, error
+from integration_framework.integration_log_repository import IntegrationLogRepository
 
-Handler = Callable[[dict[str, Any], Any, logging.Logger], Awaitable[tuple[bool, dict[str, Any], str]]]
+Handler = Callable[
+    [
+        dict[str, Any],
+        Any,
+        logging.Logger,
+        str | None,
+        str | None,
+        IntegrationLogRepository,
+    ],
+    Awaitable[tuple[bool, dict[str, Any], str]],
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -30,7 +43,9 @@ class HandlerRegistry:
     registry = HandlerRegistry()
 
     @registry.handler("RedeemTicket")
-    async def handle_redeem_ticket(payload, context, logger): ...
+    async def handle_redeem_ticket(
+        payload, context, logger, device_id, request_id, audit_repository
+    ): ...
 
     # or bulk-register an existing MESSAGE_HANDLERS dict:
     registry.update(MESSAGE_HANDLERS)
@@ -69,6 +84,7 @@ async def route_payload(
     registry: HandlerRegistry,
     expected_service_type: str,
     context: Any,
+    audit_repository: IntegrationLogRepository,
     logger: logging.Logger | None = None,
     device_id: str | None = None,
     request_id: str | None = None,
@@ -101,7 +117,9 @@ async def route_payload(
         return error(error_msg)
 
     try:
-        success, response_data, error_message = await handler(payload, context, logger)
+        success, response_data, error_message = await handler(
+            payload, context, logger, device_id, request_id, audit_repository
+        )
     except Exception as e:
         logger.exception("Error processing messageType=%s", message_type)
         return error(f"Processing error: {e}")

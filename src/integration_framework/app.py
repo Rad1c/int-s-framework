@@ -28,6 +28,7 @@ from fastapi import FastAPI
 
 from integration_framework.api import register_debug_routes, register_health_routes
 from integration_framework.handlers import HandlerRegistry
+from integration_framework.integration_log_repository import IntegrationLogRepository
 from integration_framework.logging import setup_logging
 from integration_framework.messaging.request_consumer import RequestConsumer
 from integration_framework.messaging.state import ConsumerState
@@ -56,12 +57,14 @@ class IntegrationService:
 
         setup_logging(settings.log_level, settings.log_file, settings.log_retention_days)
         self.logger = logging.getLogger(settings.service_name)
+        self.audit_repository = IntegrationLogRepository(settings, self.logger)
 
         self.consumer_state = ConsumerState()
         self.consumer = RequestConsumer(
             settings=settings,
             registry=registry,
             context=context,
+            audit_repository=self.audit_repository,
             state=self.consumer_state,
             logger=self.logger,
         )
@@ -96,6 +99,7 @@ class IntegrationService:
                     await hook()
                 except Exception:
                     self.logger.exception("Shutdown hook %s failed", hook)
+            self.audit_repository.close()
             self.logger.info("%s stopped", self.settings.service_name)
 
     def run(self) -> None:

@@ -6,14 +6,14 @@ from integration_framework.messaging.state import ConsumerState
 from tests.conftest import make_channel, make_incoming_message, make_settings, published_envelope
 
 
-async def echo_handler(payload, context, logger):
+async def echo_handler(payload, context, logger, device_id, request_id, audit_repository):
     return True, {"data": payload.get("message")}, ""
 
 
 def make_consumer(handlers=None, context=None):
     settings = make_settings()
     registry = HandlerRegistry(handlers if handlers is not None else {"Echo": echo_handler})
-    return RequestConsumer(settings, registry, context, ConsumerState())
+    return RequestConsumer(settings, registry, context, object(), ConsumerState())
 
 
 def valid_request(message=None, service_type="test_service"):
@@ -86,7 +86,7 @@ async def test_unknown_message_type_publishes_error_envelope():
 
 
 async def test_handler_exception_publishes_error_envelope():
-    async def failing(payload, context, logger):
+    async def failing(payload, context, logger, device_id, request_id, audit_repository):
         raise RuntimeError("kaboom")
 
     consumer = make_consumer(handlers={"Echo": failing})

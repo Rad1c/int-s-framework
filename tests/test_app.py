@@ -8,7 +8,7 @@ from integration_framework.messaging.request_consumer import RequestConsumer
 from tests.conftest import make_settings
 
 
-async def echo_handler(payload, context, logger):
+async def echo_handler(payload, context, logger, device_id, request_id, audit_repository):
     return True, {"data": payload.get("message")}, ""
 
 
@@ -58,6 +58,7 @@ def test_lifespan_runs_tasks_and_shutdown_hooks(monkeypatch):
         assert client.get("/health").status_code == 200
 
     assert events == ["task-started", "task-cancelled", "shutdown-hook"]
+    assert service.audit_repository._closed is True
 
 
 def test_configure_app_hook(monkeypatch):
@@ -78,8 +79,11 @@ def test_context_reaches_handlers(monkeypatch):
 
     seen = {}
 
-    async def handler(payload, context, logger):
+    async def handler(payload, context, logger, device_id, request_id, audit_repository):
         seen["context"] = context
+        seen["device_id"] = device_id
+        seen["request_id"] = request_id
+        seen["audit_repository"] = audit_repository
         return True, {}, ""
 
     sentinel = object()
@@ -93,10 +97,16 @@ def test_context_reaches_handlers(monkeypatch):
         response = client.post(
             "/debug/simulate-request",
             json={"serviceType": "test_service", "payload": {"messageType": "Echo"}},
+            headers={"X-Device-Id": "dev-42", "X-Request-Id": "req-42"},
         )
         assert response.json()["success"] == 0
 
-    assert seen["context"] is sentinel
+    assert seen == {
+        "context": sentinel,
+        "device_id": "dev-42",
+        "request_id": "req-42",
+        "audit_repository": service.audit_repository,
+    }
 
 
 def test_shutdown_hook_failure_does_not_block_others(monkeypatch):

@@ -5,17 +5,18 @@ import pytest
 from integration_framework.handlers import HandlerRegistry, route_payload
 
 _logger = logging.getLogger("test")
+_audit_repository = object()
 
 
-async def echo_handler(payload, context, logger):
+async def echo_handler(payload, context, logger, device_id, request_id, audit_repository):
     return True, {"data": payload.get("message")}, ""
 
 
-async def failing_handler(payload, context, logger):
+async def failing_handler(payload, context, logger, device_id, request_id, audit_repository):
     raise RuntimeError("kaboom")
 
 
-async def business_error_handler(payload, context, logger):
+async def business_error_handler(payload, context, logger, device_id, request_id, audit_repository):
     return False, {}, "not found"
 
 
@@ -35,7 +36,7 @@ def test_decorator_registration():
     registry = HandlerRegistry()
 
     @registry.handler("Echo")
-    async def my_handler(payload, context, logger):
+    async def my_handler(payload, context, logger, device_id, request_id, audit_repository):
         return True, {}, ""
 
     assert registry.get("Echo") is my_handler
@@ -63,7 +64,14 @@ def test_init_from_dict():
 async def test_route_payload_success():
     registry = HandlerRegistry({"Echo": echo_handler})
     response = await route_payload(
-        request("Echo", {"text": "hi"}), registry, "test_service", None, _logger, "dev-1", "req-1"
+        request("Echo", {"text": "hi"}),
+        registry,
+        "test_service",
+        None,
+        _audit_repository,
+        _logger,
+        "dev-1",
+        "req-1",
     )
     assert response == {"success": 0, "payload": {"data": {"text": "hi"}}, "error_message": ""}
 
@@ -71,46 +79,81 @@ async def test_route_payload_success():
 async def test_route_payload_wrong_service_type_returns_none():
     registry = HandlerRegistry({"Echo": echo_handler})
     response = await route_payload(
-        request("Echo", service_type="other_service"), registry, "test_service", None, _logger
+        request("Echo", service_type="other_service"),
+        registry,
+        "test_service",
+        None,
+        _audit_repository,
+        _logger,
     )
     assert response is None
 
 
 async def test_route_payload_unknown_message_type():
     registry = HandlerRegistry()
-    response = await route_payload(request("Nope"), registry, "test_service", None, _logger)
+    response = await route_payload(
+        request("Nope"), registry, "test_service", None, _audit_repository, _logger
+    )
     assert response["success"] == 1
     assert "Unknown messageType" in response["error_message"]
 
 
 async def test_route_payload_handler_exception():
     registry = HandlerRegistry({"Fail": failing_handler})
-    response = await route_payload(request("Fail"), registry, "test_service", None, _logger)
+    response = await route_payload(
+        request("Fail"), registry, "test_service", None, _audit_repository, _logger
+    )
     assert response["success"] == 1
     assert "kaboom" in response["error_message"]
 
 
 async def test_route_payload_business_error():
     registry = HandlerRegistry({"Miss": business_error_handler})
-    response = await route_payload(request("Miss"), registry, "test_service", None, _logger)
+    response = await route_payload(
+        request("Miss"), registry, "test_service", None, _audit_repository, _logger
+    )
     assert response == {"success": 1, "payload": {}, "error_message": "not found"}
 
 
-async def test_route_payload_context_passed_to_handler():
+async def test_route_payload_context_and_correlation_ids_passed_to_handler():
     seen = {}
 
-    async def handler(payload, context, logger):
+    async def handler(payload, context, logger, device_id, request_id, audit_repository):
         seen["context"] = context
+        seen["device_id"] = device_id
+        seen["request_id"] = request_id
+        seen["audit_repository"] = audit_repository
         return True, {}, ""
 
     registry = HandlerRegistry({"Ctx": handler})
     sentinel = object()
-    await route_payload(request("Ctx"), registry, "test_service", sentinel, _logger)
-    assert seen["context"] is sentinel
+    await route_payload(
+        request("Ctx"),
+        registry,
+        "test_service",
+        sentinel,
+        _audit_repository,
+        _logger,
+        "dev-42",
+        "req-42",
+    )
+    assert seen == {
+        "context": sentinel,
+        "device_id": "dev-42",
+        "request_id": "req-42",
+        "audit_repository": _audit_repository,
+    }
 
 
 async def test_route_payload_missing_payload():
     registry = HandlerRegistry({"Echo": echo_handler})
-    response = await route_payload({"serviceType": "test_service"}, registry, "test_service", None, _logger)
+    response = await route_payload(
+        {"serviceType": "test_service"},
+        registry,
+        "test_service",
+        None,
+        _audit_repository,
+        _logger,
+    )
     assert response["success"] == 1
     assert "Unknown messageType" in response["error_message"]
