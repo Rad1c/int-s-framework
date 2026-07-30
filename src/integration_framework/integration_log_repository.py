@@ -224,7 +224,7 @@ class IntegrationLogRepository:
             if connection:
                 try:
                     connection.rollback()
-                except Exception:
+                except psycopg2.Error:
                     reset_pool = True
             reset_pool = reset_pool or isinstance(
                 error, (psycopg2.InterfaceError, psycopg2.OperationalError)
@@ -280,7 +280,7 @@ class IntegrationLogRepository:
             if connection:
                 try:
                     connection.rollback()
-                except Exception:
+                except psycopg2.Error:
                     reset_pool = True
             reset_pool = reset_pool or isinstance(
                 error, (psycopg2.InterfaceError, psycopg2.OperationalError)

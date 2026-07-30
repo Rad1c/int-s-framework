@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "integration-service-framework"
-version = "0.1.0"
+version = "0.1.1"
 description = "Shared foundation for Monroe integration services: RabbitMQ request/response pipeline, handler routing, health/debug endpoints, config and lifecycle."
 readme = "README.md"
 requires-python = ">=3.11"

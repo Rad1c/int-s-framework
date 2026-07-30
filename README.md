@@ -10,13 +10,13 @@ integration service only writes **handlers**.
 Pin a git tag in `requirements.txt`:
 
 ```
-integration-service-framework @ git+https://github.com/monroe-solutions/integration-service-framework@v0.1.0
+integration-service-framework @ git+https://github.com/monroe-solutions/integration-service-framework@v0.1.1
 ```
 
 For private repos, CI/Docker builds need a token, e.g.:
 
 ```
-git+https://${GITHUB_TOKEN}@github.com/monroe-solutions/integration-service-framework@v0.1.0
+git+https://${GITHUB_TOKEN}@github.com/monroe-solutions/integration-service-framework@v0.1.1
 ```
 
 ## Quick start
