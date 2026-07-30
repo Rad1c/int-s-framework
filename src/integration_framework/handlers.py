@@ -14,11 +14,12 @@ response envelope (see envelope.py).
 """
 
 import logging
-from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from integration_framework.envelope import envelope, error
 
-Handler = Callable[[Dict[str, Any], Any, logging.Logger], Awaitable[Tuple[bool, Dict[str, Any], str]]]
+Handler = Callable[[dict[str, Any], Any, logging.Logger], Awaitable[tuple[bool, dict[str, Any], str]]]
 
 _logger = logging.getLogger(__name__)
 
@@ -35,8 +36,8 @@ class HandlerRegistry:
     registry.update(MESSAGE_HANDLERS)
     """
 
-    def __init__(self, handlers: Optional[Dict[str, Handler]] = None):
-        self._handlers: Dict[str, Handler] = dict(handlers or {})
+    def __init__(self, handlers: dict[str, Handler] | None = None):
+        self._handlers: dict[str, Handler] = dict(handlers or {})
 
     def handler(self, message_type: str) -> Callable[[Handler], Handler]:
         def decorator(fn: Handler) -> Handler:
@@ -49,11 +50,11 @@ class HandlerRegistry:
             raise ValueError(f"Handler for messageType {message_type!r} already registered")
         self._handlers[message_type] = fn
 
-    def update(self, handlers: Dict[str, Handler]) -> None:
+    def update(self, handlers: dict[str, Handler]) -> None:
         for message_type, fn in handlers.items():
             self.register(message_type, fn)
 
-    def get(self, message_type: str) -> Optional[Handler]:
+    def get(self, message_type: str) -> Handler | None:
         return self._handlers.get(message_type)
 
     def __contains__(self, message_type: str) -> bool:
@@ -64,14 +65,14 @@ class HandlerRegistry:
 
 
 async def route_payload(
-    message_data: Dict[str, Any],
+    message_data: dict[str, Any],
     registry: HandlerRegistry,
     expected_service_type: str,
     context: Any,
-    logger: logging.Logger = None,
-    device_id: str = None,
-    request_id: str = None,
-) -> Optional[Dict[str, Any]]:
+    logger: logging.Logger | None = None,
+    device_id: str | None = None,
+    request_id: str | None = None,
+) -> dict[str, Any] | None:
     """
     Routes an inbound client-to-server message to the matching handler.
 
@@ -102,7 +103,7 @@ async def route_payload(
     try:
         success, response_data, error_message = await handler(payload, context, logger)
     except Exception as e:
-        logger.error("Error processing messageType=%s: %s", message_type, e, exc_info=True)
+        logger.exception("Error processing messageType=%s: %s", message_type, e)
         return error(f"Processing error: {e}")
 
     logger.info(

@@ -79,7 +79,7 @@ async def test_5xx_retried(monkeypatch):
         return httpx.Response(200, json={"ok": True})
 
     client = make_client(handler, retry_attempts=3)
-    success, data, _, _ = await client.get("/api/thing")
+    success, _, _, _ = await client.get("/api/thing")
 
     assert success is True
     assert calls["count"] == 3
@@ -95,7 +95,7 @@ async def test_connection_error_exhausts_retries(monkeypatch):
         raise httpx.ConnectError("refused")
 
     client = make_client(handler, retry_attempts=2)
-    success, data, headers, error = await client.get("/api/thing")
+    success, _, _, error = await client.get("/api/thing")
 
     assert success is False
     assert "Request error" in error

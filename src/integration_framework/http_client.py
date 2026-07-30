@@ -7,11 +7,11 @@ betbox API client so services don't re-implement retry/SSL plumbing.
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import httpx
 
-Response = Tuple[bool, Dict[str, Any], Dict[str, str], str]
+Response = tuple[bool, dict[str, Any], dict[str, str], str]
 
 _logger = logging.getLogger(__name__)
 
@@ -26,8 +26,8 @@ class ApiClient:
         api_key: str = "",
         api_key_header: str = "x-api-key",
         cert_path: str = "",
-        logger: logging.Logger = None,
-        transport: Optional[httpx.AsyncBaseTransport] = None,
+        logger: logging.Logger | None = None,
+        transport: httpx.AsyncBaseTransport | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.retry_attempts = max(1, retry_attempts)
@@ -46,7 +46,7 @@ class ApiClient:
     def _build_url(self, path: str) -> str:
         return f"{self.base_url}/{path.lstrip('/')}"
 
-    def _build_headers(self) -> Dict[str, str]:
+    def _build_headers(self) -> dict[str, str]:
         headers = {"Accept": "application/json", "Content-Type": "application/json"}
         if self.api_key:
             headers[self.api_key_header] = self.api_key
@@ -55,10 +55,10 @@ class ApiClient:
     async def get(self, path: str) -> Response:
         return await self._request("GET", path)
 
-    async def post(self, path: str, payload: Optional[Dict[str, Any]] = None) -> Response:
+    async def post(self, path: str, payload: dict[str, Any] | None = None) -> Response:
         return await self._request("POST", path, payload)
 
-    async def _request(self, method: str, path: str, payload: Optional[Dict[str, Any]] = None) -> Response:
+    async def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Response:
         url = self._build_url(path)
         last_error = ""
 
@@ -90,7 +90,7 @@ class ApiClient:
         return False, {}, {}, last_error
 
     @staticmethod
-    def _parse_body(response: httpx.Response) -> Dict[str, Any]:
+    def _parse_body(response: httpx.Response) -> dict[str, Any]:
         try:
             body = response.json()
             return body if isinstance(body, dict) else {"data": body}

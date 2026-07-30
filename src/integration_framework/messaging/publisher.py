@@ -2,14 +2,14 @@
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import aio_pika
 
 _logger = logging.getLogger(__name__)
 
 
-def correlation_headers(device_id: Optional[str], request_id: Optional[str]) -> Dict[str, str]:
+def correlation_headers(device_id: str | None, request_id: str | None) -> dict[str, str]:
     headers = {}
     if device_id is not None:
         headers["X-Device-Id"] = device_id
@@ -21,10 +21,10 @@ def correlation_headers(device_id: Optional[str], request_id: Optional[str]) -> 
 async def publish_response(
     channel: aio_pika.abc.AbstractChannel,
     response_queue: str,
-    response: Dict[str, Any],
-    device_id: Optional[str] = None,
-    request_id: Optional[str] = None,
-    logger: logging.Logger = None,
+    response: dict[str, Any],
+    device_id: str | None = None,
+    request_id: str | None = None,
+    logger: logging.Logger | None = None,
 ) -> None:
     """Publish a response envelope to the response queue, echoing the inbound
     message's X-Device-Id / X-Request-Id correlation headers."""

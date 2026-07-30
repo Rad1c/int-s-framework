@@ -19,8 +19,9 @@ settings, handlers, and context:
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable, Iterable
 from contextlib import asynccontextmanager
-from typing import Any, Awaitable, Callable, Iterable, Optional
+from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
@@ -44,7 +45,7 @@ class IntegrationService:
         registry: HandlerRegistry,
         context: Any = None,
         extra_tasks: Iterable[BackgroundTask] = (),
-        configure_app: Optional[Callable[[FastAPI], None]] = None,
+        configure_app: Callable[[FastAPI], None] | None = None,
         on_shutdown: Iterable[Callable[[], Awaitable[None]]] = (),
     ):
         self.settings = settings
@@ -94,7 +95,7 @@ class IntegrationService:
                 try:
                     await hook()
                 except Exception as e:
-                    self.logger.error("Shutdown hook %s failed: %s", hook, e, exc_info=True)
+                    self.logger.exception("Shutdown hook %s failed: %s", hook, e)
             self.logger.info("%s stopped", self.settings.service_name)
 
     def run(self) -> None:

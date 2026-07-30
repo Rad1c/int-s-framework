@@ -20,7 +20,9 @@ ProcessFn = Callable[[dict, str, str], Awaitable[dict | None]]
 _logger = logging.getLogger(__name__)
 
 
-def register_debug_routes(app: FastAPI, process_fn: ProcessFn, logger: logging.Logger = None) -> None:
+def register_debug_routes(
+    app: FastAPI, process_fn: ProcessFn, logger: logging.Logger | None = None
+) -> None:
     logger = logger or _logger
 
     @app.post("/debug/simulate-request")
@@ -42,7 +44,7 @@ def register_debug_routes(app: FastAPI, process_fn: ProcessFn, logger: logging.L
         try:
             response = await process_fn(message_data, device_id, request_id)
         except Exception as e:
-            logger.error("Error processing debug request: %s", e, exc_info=True)
+            logger.exception("Error processing debug request: %s", e)
             raise HTTPException(status_code=500, detail=f"Processing error: {e}")
 
         if response is None:

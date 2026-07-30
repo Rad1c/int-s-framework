@@ -11,20 +11,19 @@ connection outside the request/response pipeline.
 """
 
 import logging
-from typing import Optional
 
 import aio_pika
 
-from integration_framework.settings import FrameworkSettings
 from integration_framework.messaging.state import ConsumerState
+from integration_framework.settings import FrameworkSettings
 
 _logger = logging.getLogger(__name__)
 
 
 async def create_robust_connection(
     settings: FrameworkSettings,
-    state: Optional[ConsumerState] = None,
-    logger: logging.Logger = None,
+    state: ConsumerState | None = None,
+    logger: logging.Logger | None = None,
     name: str = "consumer",
 ) -> aio_pika.RobustConnection:
     logger = logger or _logger
@@ -49,7 +48,7 @@ async def create_robust_connection(
         if state:
             state.mark_connected()
 
-    def _on_close(_sender, exc: Optional[BaseException] = None) -> None:
+    def _on_close(_sender, exc: BaseException | None = None) -> None:
         if exc:
             logger.warning("%s connection lost: %s. Waiting for reconnect...", name, exc)
             if state:

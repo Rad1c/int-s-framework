@@ -17,7 +17,7 @@ Ack/nack semantics:
 import asyncio
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import aio_pika
 import aio_pika.abc
@@ -38,8 +38,8 @@ class RequestConsumer:
         settings: FrameworkSettings,
         registry: HandlerRegistry,
         context: Any,
-        state: Optional[ConsumerState] = None,
-        logger: logging.Logger = None,
+        state: ConsumerState | None = None,
+        logger: logging.Logger | None = None,
     ):
         self.settings = settings
         self.registry = registry
@@ -141,11 +141,13 @@ class RequestConsumer:
             await message.ack()
             self.logger.info("Request message acknowledged (X-Request-Id=%s)", request_id)
         except Exception as e:
-            self.logger.error("Error processing request message: %s", e, exc_info=True)
+            self.logger.exception("Error processing request message: %s", e)
             await message.nack(requeue=False)
             self.logger.info("Request message nacked (requeue=False)")
 
-    async def process(self, message_data: dict, device_id: str = None, request_id: str = None):
+    async def process(
+        self, message_data: dict, device_id: str | None = None, request_id: str | None = None
+    ):
         """Route a decoded message through the handler registry. Also used by
         the debug controller so HTTP simulation shares the exact same path."""
         return await route_payload(

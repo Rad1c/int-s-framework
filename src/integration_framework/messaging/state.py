@@ -1,15 +1,14 @@
 """Connection state shared between a consumer and the health endpoint."""
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 
 @dataclass
 class ConsumerState:
     connected: bool = False
-    last_connected_at: Optional[datetime] = None
-    last_error: Optional[str] = None
+    last_connected_at: datetime | None = None
+    last_error: str | None = None
 
     @property
     def state(self) -> str:
@@ -17,7 +16,7 @@ class ConsumerState:
 
     def mark_connected(self) -> None:
         self.connected = True
-        self.last_connected_at = datetime.now(timezone.utc)
+        self.last_connected_at = datetime.now(UTC)
         self.last_error = None
 
     def mark_disconnected(self, error: str) -> None:
