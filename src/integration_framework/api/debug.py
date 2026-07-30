@@ -8,14 +8,14 @@ settings.app_env == 'development'.
 """
 
 import logging
-from typing import Awaitable, Callable, Optional
+from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from integration_framework.messaging.publisher import correlation_headers
 
-ProcessFn = Callable[[dict, str, str], Awaitable[Optional[dict]]]
+ProcessFn = Callable[[dict, str, str], Awaitable[dict | None]]
 
 _logger = logging.getLogger(__name__)
 
