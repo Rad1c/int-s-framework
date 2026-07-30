@@ -103,7 +103,7 @@ async def route_payload(
     try:
         success, response_data, error_message = await handler(payload, context, logger)
     except Exception as e:
-        logger.exception("Error processing messageType=%s: %s", message_type, e)
+        logger.exception("Error processing messageType=%s", message_type)
         return error(f"Processing error: {e}")
 
     logger.info(

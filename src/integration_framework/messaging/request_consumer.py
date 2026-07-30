@@ -140,8 +140,8 @@ class RequestConsumer:
 
             await message.ack()
             self.logger.info("Request message acknowledged (X-Request-Id=%s)", request_id)
-        except Exception as e:
-            self.logger.exception("Error processing request message: %s", e)
+        except Exception:
+            self.logger.exception("Error processing request message")
             await message.nack(requeue=False)
             self.logger.info("Request message nacked (requeue=False)")
 

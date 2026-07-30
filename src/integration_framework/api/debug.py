@@ -44,7 +44,7 @@ def register_debug_routes(
         try:
             response = await process_fn(message_data, device_id, request_id)
         except Exception as e:
-            logger.exception("Error processing debug request: %s", e)
+            logger.exception("Error processing debug request")
             raise HTTPException(status_code=500, detail=f"Processing error: {e}")
 
         if response is None:

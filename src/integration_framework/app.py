@@ -94,8 +94,8 @@ class IntegrationService:
             for hook in self.on_shutdown:
                 try:
                     await hook()
-                except Exception as e:
-                    self.logger.exception("Shutdown hook %s failed: %s", hook, e)
+                except Exception:
+                    self.logger.exception("Shutdown hook %s failed", hook)
             self.logger.info("%s stopped", self.settings.service_name)
 
     def run(self) -> None:

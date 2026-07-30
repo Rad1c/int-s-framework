@@ -1,6 +1,7 @@
 """Health check routes with RabbitMQ consumer status."""
 
 import logging
+
 from fastapi import FastAPI
 
 from integration_framework.messaging.state import ConsumerState
