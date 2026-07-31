@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Integration Service"
+  short_description: "Build services on the shared integration framework"
+  default_prompt: "Use $build-integration-service to create or migrate an integration service onto the shared framework."

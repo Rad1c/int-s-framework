@@ -1,5 +1,7 @@
 """
 Minimal integration service built on integration-service-framework.
+Real services keep their external HTTP/SOAP/gRPC client beside their handlers
+and pass it to IntegrationService as context.
 
 Run a local RabbitMQ first:
     docker compose -f docker-compose.rabbitmq.yml up -d
