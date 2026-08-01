@@ -1,0 +1,135 @@
+# integration-service-framework
+
+Shared Python foundation for Monroe integration services: RabbitMQ request/response pipeline,
+handler routing, response envelopes, FastAPI lifecycle and health/debug routes, common settings,
+logging, and best-effort PostgreSQL audit logging.
+
+This repository is a **library consumed by other services through a pinned Git tag**. Nothing here
+runs in production on its own, and every published change lands in several services at once.
+
+Write everything in this repository in English — files, comments, knowledge entries, commit messages.
+
+## The rule that governs every change
+
+The framework owns infrastructure; the consumer service owns its external client, its business
+handlers, and its own settings. Before adding anything, decide which side of that line it falls on
+— the table in [README.md](README.md#responsibility-boundary) is the reference. Service-specific
+behavior (an API client, an endpoint path, a payload mapping) stays out of the framework even when
+two services would both use it.
+
+## Commands
+
+```bash
+pip install -e .[dev]
+ruff check .          # blocking in CI; do not mask failures
+pytest                # asyncio_mode=auto — async tests need no marker
+```
+
+CI ([.github/workflows/build-test.yml](.github/workflows/build-test.yml)) runs ruff and pytest on
+Python 3.11, 3.12 and 3.13. Keep all three green.
+
+Local smoke test: [.claude/playbooks/local-smoke-test.md](.claude/playbooks/local-smoke-test.md).
+Cutting a release: [.claude/playbooks/release-version.md](.claude/playbooks/release-version.md).
+
+## Map
+
+| Area | File |
+|---|---|
+| Public API surface (`__all__`) | [src/integration_framework/\_\_init\_\_.py](src/integration_framework/__init__.py) |
+| Service orchestrator, FastAPI lifespan | [app.py](src/integration_framework/app.py) |
+| Settings loaded from env | [settings.py](src/integration_framework/settings.py) |
+| Registry and `route_payload` | [handlers.py](src/integration_framework/handlers.py) |
+| Response envelope | [envelope.py](src/integration_framework/envelope.py) |
+| Consume / ack / nack | [messaging/request_consumer.py](src/integration_framework/messaging/request_consumer.py) |
+| Connection, publishing, health state | [messaging/](src/integration_framework/messaging/) |
+| Best-effort audit | [integration_log_repository.py](src/integration_framework/integration_log_repository.py) |
+| Health and development debug routes | [api/](src/integration_framework/api/) |
+| Minimal working service | [examples/echo_service/main.py](examples/echo_service/main.py) |
+
+Read [.claude/knowledge/architecture.md](.claude/knowledge/architecture.md) before changing the
+message pipeline, and [.claude/knowledge/integration-audit.md](.claude/knowledge/integration-audit.md)
+before touching audit logging.
+
+`build/` holds stale build output and is gitignored — never edit it or read it as source.
+
+## Conventions
+
+- **Python 3.11+.** Modern union syntax (`str | None`), `datetime.now(UTC)`, `asyncio.to_thread`.
+- **Ruff, line length 110**, configured in [pyproject.toml](pyproject.toml).
+- **A new setting is three edits, not one:** the field in `settings.py`, the entry in
+  [.env.example](.env.example), and the row in the README environment table. Consumers copy that
+  contract verbatim, so the three drift apart silently.
+- **A new export is two edits:** the import and the `__all__` entry in `__init__.py`.
+- **Lazy log formatting** (`logger.info("...%s", value)`), never f-strings in log calls. Keep
+  credentials, connection strings, and personal data out of log lines.
+- **Audit never breaks business flow.** Every failure path in the audit repository logs and
+  swallows. A change that lets it raise into a handler is a defect.
+- **Odoo owns the `integration_request_response` and `terminal` tables.** The framework reads and
+  writes them; it never creates, alters, or migrates them.
+- Commit messages follow `feat:`, `fix:`, `refactor:`.
+
+## Changes that ripple into every consumer
+
+The handler signature, the envelope shape, the `success` inversion, common setting names, and the
+audit method signatures are a published contract. When a change touches one of them, say so
+explicitly, describe the consumer-side migration, and treat it as a minor version bump rather than
+a patch. The consumer-side process itself lives in the Codex-facing
+[skills/build-integration-service](skills/build-integration-service/SKILL.md) skill — keep it
+versioned with the contract it describes.
+
+## Verification
+
+Verification means `ruff check .` and `pytest` actually ran, with output. Do not report a change as
+done on inspection alone. Add tests beside the change in [tests/](tests/); shared fakes live in
+[tests/conftest.py](tests/conftest.py) (`make_settings`, `make_incoming_message`, `make_channel`,
+`published_envelope`) — reuse them instead of building new mocks. Commit or push only when asked.
+
+## Layout
+
+- `.claude/registry.yaml` — index of every registered asset. Generated by `sync-registry`; do not hand-edit.
+- `.claude/agents/<name>.md` — subagents: an independent lens on work already in progress.
+- `.claude/skills/<name>/SKILL.md` — reusable instructions for a kind of work.
+- `.claude/knowledge/` — verified project facts, gotchas, and decisions.
+- `.claude/playbooks/` — end-to-end workflows. Follow the narrowest match.
+- `.claude/templates/` — starting points for artifacts created repeatedly.
+- `.claude/tools/` — executable automation. Lifecycle in `.claude/tools/README.md`.
+- `.claude/workspace/generated/` — one-off automation. Nothing here is registered.
+
+Skills explain how, knowledge explains why, playbooks define workflows, templates shape documents, tools run.
+
+## Knowledge
+
+`.claude/knowledge/` is the project's memory, and it earns nothing if only written to.
+
+- `gotchas.md` — surprise → cause → fix
+- `decisions.md` — decision → why → what was rejected
+- `<domain>.md` — durable verified facts about the project
+
+**Read** the relevant entries before diagnosing a bug, before changing an area you have not touched
+this session, and before proposing an approach whose downside would already be recorded. An entry
+that turns out to be wrong gets corrected in place, noting what changed — a stale gotcha costs more
+than a missing one.
+
+**Write** an entry the moment one of these fires, rather than at the end of the task:
+
+- **Root cause of a non-obvious bug found** — append a gotcha before applying the fix.
+- **Chose between real alternatives** — append the decision, naming what you rejected and why.
+- **Learned a durable fact about how the project works** — append it to the matching `<domain>.md`.
+
+Every entry records something you verified. Write `TBD` where you would otherwise guess.
+
+## Growing the scaffold
+
+The scaffold is expected to gain assets as you work. Act on these where they fire:
+
+- **Before writing any helper, util, or script** — search `.claude/tools/` and `.claude/skills/` first, then the project itself. Reuse what exists. If nothing matches, write the smallest version under `.claude/workspace/generated/`.
+- **Same script needed a second time** — propose promoting it from `workspace/generated/` to `.claude/tools/candidate/`, and to a category under `.claude/tools/` once it is documented and verified.
+- **Same procedure a third time, or the user corrects how you work** — that is a skill candidate. Propose it with `AskUserQuestion`; write the `SKILL.md` only after the user agrees, following `writing-great-skills`.
+- **A registered asset added, moved, promoted, or removed** — run `sync-registry`.
+
+## Working rules
+
+- Skills, playbooks, templates, and tools stay technology-agnostic where they can. Anything true only of this project belongs in `.claude/knowledge/`.
+- Delegate to a subagent when the work needs isolated context or an adversarial lens — not to split work you can do in one pass.
+- Add a template only for an artifact created repeatedly; add a knowledge file only when there is something verified to preserve.
+- A subagent file, a `SKILL.md`, and a `tool.yaml` with its adjacent README are the canonical documentation for those assets — extend them in place when they need more.

@@ -1,0 +1,15 @@
+id: <tool-id>
+description: <what this tool does>
+type: <script|mcp|cli|generator|analyzer>
+runtime: <runtime and version>
+entrypoint: <relative executable path>
+inputs:
+  - name: <input-name>
+    required: true
+    description: <input description>
+outputs:
+  - name: <output-name>
+    description: <output description>
+requirements: []
+tags: []
+lifecycle: candidate

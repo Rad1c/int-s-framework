@@ -1,0 +1,18 @@
+id: sync-registry
+description: Generate registry.yaml from the .claude directory tree, so the index cannot reference a file that does not exist.
+type: generator
+runtime: Windows PowerShell 5.1+
+entrypoint: sync-registry.ps1
+inputs:
+  - name: ClaudeRoot
+    required: false
+    description: Path to the .claude directory; defaults to the one containing this tool.
+  - name: Check
+    required: false
+    description: Compare the generated index against the committed one and exit 1 when they differ, instead of writing.
+outputs:
+  - name: registry.yaml
+    description: The regenerated index, written to the root of the .claude directory.
+requirements: []
+tags: [registry, index, generator, validation]
+lifecycle: official

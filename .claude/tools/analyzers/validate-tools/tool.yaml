@@ -1,0 +1,15 @@
+id: validate-tools
+description: Validate tool manifests, their declared entrypoints, their README, and that the declared lifecycle matches where the tool lives.
+type: analyzer
+runtime: Windows PowerShell 5.1+
+entrypoint: validate-tools.ps1
+inputs:
+  - name: ToolsRoot
+    required: false
+    description: Path to the tools directory; defaults to the repository tools directory.
+outputs:
+  - name: validation-result
+    description: Manifest errors and a summary written to standard output.
+requirements: []
+tags: [tools, manifests, validation]
+lifecycle: official
